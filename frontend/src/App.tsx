@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
-import Home from "./pages/Home";
+import CSSimulation from "./pages/CSSimulation";
 
 /**
  * Komponen untuk halaman 404 Not Found yang lebih profesional.
@@ -44,7 +44,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<CSSimulation />} />
         {/* Rute ini akan menangkap semua path yang tidak cocok */}
         <Route path="*" element={<NotFound />} />
       </Routes>
