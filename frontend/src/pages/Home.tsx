@@ -1,4 +1,7 @@
+
 import React, { useState } from "react";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 //=========== TIPE DATA & KONSTANTA ===========//
 type ConversationItem = {
@@ -159,39 +162,55 @@ export default function Home() {
   const [result, setResult] = useState<ResultType>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleGenerateQuestions = () => {
+  const handleGenerateQuestions = async () => {
     setLoading(true);
-    setQuestions([]); // Kosongkan pertanyaan saat generate baru
+    setQuestions([]);
     setConversation([]);
     setResult(null);
-    setTimeout(() => {
-      const topicLabel = TOPICS.find(t => t.key === topic)?.label || "Pilihan";
-      setQuestions([
-        `Pertanyaan 1 untuk topik ${topicLabel}`,
-        `Pertanyaan 2 untuk topik ${topicLabel}`,
-        `Pertanyaan 3 untuk topik ${topicLabel}`,
-      ]);
-      setLoading(false);
-    }, 800);
+    try {
+      // Backend mengembalikan 1 pertanyaan, frontend butuh 3, jadi generate 3x
+      const pertanyaan = [];
+      for (let i = 0; i < 3; i++) {
+        const resQ = await fetch(`${API_URL}/api/v1/conversation/generate-question/${topic}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ customer_id: "demo", context: pertanyaan.join(" ") })
+        });
+        const dataQ = await resQ.json();
+        pertanyaan.push(dataQ.question);
+      }
+      setQuestions(pertanyaan);
+    } catch {
+      alert("Gagal mengambil pertanyaan dari server");
+    }
+    setLoading(false);
   };
 
-  const handleProcessAnswer = () => {
+  const handleProcessAnswer = async () => {
     setLoading(true);
-    setTimeout(() => {
-      const newConversation = [ ...conversation, { q: questions[conversation.length], a: customerAnswer }];
+    try {
+      const currentQuestion = questions[conversation.length];
+      const res = await fetch(`${API_URL}/api/v1/conversation/answer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customer_id: "demo",
+          topic,
+          question: currentQuestion,
+          manual_input: customerAnswer,
+        })
+      });
+      const data = await res.json();
+      const newConversation = [ ...conversation, { q: currentQuestion, a: customerAnswer }];
       setConversation(newConversation);
       setCustomerAnswer("");
-      if (newConversation.length === 3) {
-        setResult({
-          status: "Aktif",
-          minat: "Tinggi",
-          promo: "Diskon 10%",
-          estimasi_pembayaran: "Rp 250.000",
-          alasan: "Pelanggan tertarik dengan promo dan layanan yang ditawarkan setelah diberikan penjelasan yang solutif.",
-        });
+      if (newConversation.length === 3 && data.prediction) {
+        setResult(data.prediction);
       }
-      setLoading(false);
-    }, 800);
+    } catch {
+      alert("Gagal memproses jawaban");
+    }
+    setLoading(false);
   };
 
   return (
