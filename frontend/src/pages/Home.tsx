@@ -11,24 +11,31 @@ const LoginPage = ({ onLoginSuccess }: { onLoginSuccess: (customerId: string) =>
     const [alert, setAlert] = useState<{ type: 'success' | 'error', title: string, message: string } | null>(null);
     const navigate = useNavigate();
 
-    const handleCheckId = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        setError('');
+        const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+        const handleCheckId = async (e: React.FormEvent) => {
+                e.preventDefault();
+                setLoading(true);
+                setError('');
+                setAlert(null);
 
-        // Simulate API call to validate customer ID
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        // Mock validation: accept 'ICON12345' as a valid ID
-        if (customerId === 'ICON12345') {
-            onLoginSuccess(customerId);
-            navigate("/Dashboard");
-        } else {
-            setAlert({ type: 'error', title: 'ID Tidak Valid', message: 'ID Pelanggan tidak ditemukan atau tidak valid.' });
-
-        }
-        setLoading(false);
-    };
+                try {
+                    const res = await fetch(`${API_BASE_URL}/customer/check`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ customerId })
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.valid) {
+                        onLoginSuccess(customerId);
+                        navigate("/Dashboard");
+                    } else {
+                        setAlert({ type: 'error', title: 'ID Tidak Valid', message: 'ID Pelanggan tidak ditemukan atau tidak valid.' });
+                    }
+                } catch {
+                    setAlert({ type: 'error', title: 'Error', message: 'Gagal terhubung ke server.' });
+                }
+                setLoading(false);
+        };
 
     return (
         <div className="min-h-screen w-full bg-gray-100 flex flex-col items-center justify-center p-4 font-sans">
