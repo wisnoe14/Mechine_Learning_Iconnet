@@ -12,25 +12,31 @@ const AuthPage = ({ onLoginSuccess }: { onLoginSuccess: (user: { email: string; 
     const [alert, setAlert] = useState<{ type: 'success' | 'error', title: string, message: string } | null>(null);
     const navigate = useNavigate();
 
-    const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        setError('');
-        setAlert(null);
+        const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+        const handleLogin = async (e: React.FormEvent) => {
+                e.preventDefault();
+                setLoading(true);
+                setError('');
+                setAlert(null);
 
-        // Simulate API call to authenticate user
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        // Mock authentication logic
-        if (email === 'user@iconnet.com' && password === 'password123') {
-            // Pass a user object on successful login
-            onLoginSuccess({ email: email, name: 'Agent 007' });
-            navigate('/Home'); 
-        } else {
-            setAlert({ type: 'error', title: 'Login Gagal', message: 'Login gagal, silakan coba lagi.' });
-        }
-        setLoading(false);
-    };
+                try {
+                    const res = await fetch(`${API_BASE_URL}/auth/login`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email, password })
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.success) {
+                        onLoginSuccess({ email, name: data.name });
+                        navigate('/Home');
+                    } else {
+                        setAlert({ type: 'error', title: 'Login Gagal', message: 'Login gagal, silakan coba lagi.' });
+                    }
+                } catch {
+                    setAlert({ type: 'error', title: 'Error', message: 'Gagal terhubung ke server.' });
+                }
+                setLoading(false);
+        };
 
     return (
         <div className="min-h-screen w-full bg-gray-100 flex flex-col items-center justify-center p-4 font-sans">
