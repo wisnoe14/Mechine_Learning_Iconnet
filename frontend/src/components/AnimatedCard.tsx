@@ -1,25 +1,28 @@
-import React from 'react';
+import React from "react";
+import { cn } from "../lib/utils";
 
 interface AnimatedCardProps {
   children: React.ReactNode;
   className?: string;
-  hover?: boolean;
-  glow?: boolean;
+  delay?: number;
 }
 
 const AnimatedCard: React.FC<AnimatedCardProps> = ({ 
   children, 
-  className = '', 
-  hover = true,
-  glow = false 
+  className,
+  delay = 0 
 }) => {
   return (
-    <div className={`
-      glass-card rounded-2xl p-6
-      ${hover ? 'card-interactive' : ''}
-      ${glow ? 'pulse-glow' : ''}
-      ${className}
-    `}>
+    <div 
+      className={cn(
+        "opacity-0 translate-y-4 animate-fade-in animate-fadeIn",
+        className
+      )}
+      style={{
+        animationDelay: `${delay}ms`,
+        animationFillMode: 'forwards'
+      }}
+    >
       {children}
     </div>
   );

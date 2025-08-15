@@ -1,5 +1,8 @@
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import CSSimulation from "./pages/CSSimulation";
+import Home from "./pages/Home";
+import LoginPage from "./pages/Login";
+
 
 /**
  * Komponen untuk halaman 404 Not Found yang lebih profesional.
@@ -44,9 +47,18 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<CSSimulation />} />
-        {/* Rute ini akan menangkap semua path yang tidak cocok */}
+        <Route path="/" element={<LoginPage onLoginSuccess={() => {}} />} />
+        <Route path="/Home" element={<Home onLoginSuccess={() => {
+                // You can handle login success here, e.g., save customerId to state or context
+                // For now, do nothing or add your logic
+              }}
+            />
+          }
+        />
+        <Route path="/Dashboard" element={<CSSimulation />} />
         <Route path="*" element={<NotFound />} />
+        
+        
       </Routes>
     </BrowserRouter>
   );
