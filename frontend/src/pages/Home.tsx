@@ -4,8 +4,8 @@ import { useNavigate } from "react-router-dom";
 import Alert from '../components/Alert';
 
 // --- LOGIN PAGE COMPONENT ---
-const LoginPage = ({ onLoginSuccess }: { onLoginSuccess: (customerId: string) => void }) => {
-    const [customerId, setCustomerId] = useState('');
+const LoginPage = ({ onLoginSuccess }: { onLoginSuccess: (customer_Id: string) => void }) => {
+    const [customer_Id, setCustomer_Id] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [alert, setAlert] = useState<{ type: 'success' | 'error', title: string, message: string } | null>(null);
@@ -19,14 +19,15 @@ const LoginPage = ({ onLoginSuccess }: { onLoginSuccess: (customerId: string) =>
                 setAlert(null);
 
                 try {
-                    const res = await fetch(`${API_BASE_URL}/customer/check`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ customerId })
+                    const res = await fetch(`${API_BASE_URL}/customer/check/${customer_Id}`, {
+                        method: "GET",
+                        headers: { "Content-Type": "application/json" }
                     });
                     const data = await res.json();
                     if (res.ok && data.valid) {
-                        onLoginSuccess(customerId);
+                        // Simpan customer_Id ke sessionStorage
+                        sessionStorage.setItem('customer_id', customer_Id);
+                        onLoginSuccess(customer_Id);
                         navigate("/Dashboard");
                     } else {
                         setAlert({ type: 'error', title: 'ID Tidak Valid', message: 'ID Pelanggan tidak ditemukan atau tidak valid.' });
@@ -64,8 +65,8 @@ const LoginPage = ({ onLoginSuccess }: { onLoginSuccess: (customerId: string) =>
                                 <input
                                     id="customer-id"
                                     type="text"
-                                    value={customerId}
-                                    onChange={(e) => setCustomerId(e.target.value)}
+                                    value={customer_Id}
+                                    onChange={(e) => setCustomer_Id(e.target.value)}
                                     placeholder="Contoh: ICON12345"
                                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     required

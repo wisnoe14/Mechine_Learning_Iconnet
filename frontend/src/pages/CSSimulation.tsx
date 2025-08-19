@@ -311,14 +311,17 @@ const CSSimulation = () => {
         setConversation([]);
         setCurrentStep(0);
         try {
-            const response = await fetch(`${API_BASE_URL}/conversation/generate-question`, {
+            // Ambil customer_id dari sessionStorage
+            const customer_id = sessionStorage.getItem('customer_id') || "";
+            const response = await fetch(`${API_BASE_URL}/conversation/generate-question/${topic}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ topic }),
+                body: JSON.stringify({ customer_id, context: "" }),
             });
             if (!response.ok) throw new Error('Network response was not ok');
             const scenarioData = await response.json();
-            setScenario(scenarioData.scenario || []);
+            // Patch: jika response hanya berisi question, buat scenario array satu item
+            setScenario([{ q: scenarioData.question, options: [] }]);
         } catch (error) {
             console.error("Failed to fetch scenario:", error);
             alert("Gagal mengambil skenario dari server. Silakan coba lagi.");
@@ -465,12 +468,12 @@ const CSSimulation = () => {
                             </div>
                         )}
                         {isSimulationRunning && (
-                            <AnswerInput 
-                                question={scenario[currentStep].q}
-                                options={scenario[currentStep].options}
-                                onAnswer={handleAnswer}
-                                loading={loading}
-                            />
+                                <AnswerInput 
+                                    question={scenario[currentStep].q}
+                                    options={scenario[currentStep].options}
+                                    onAnswer={handleAnswer}
+                                    loading={loading}
+                                />
                         )}
                         {result && (
                             <PredictionResult result={result} topic={topic} onReset={handleReset} />

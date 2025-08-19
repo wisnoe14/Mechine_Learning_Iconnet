@@ -12,13 +12,13 @@ const AuthPage = ({ onLoginSuccess }: { onLoginSuccess: (user: { email: string; 
     const [alert, setAlert] = useState<{ type: 'success' | 'error', title: string, message: string } | null>(null);
     const navigate = useNavigate();
 
-        const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+    const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1/endpoints";
         const handleLogin = async (e: React.FormEvent) => {
                 e.preventDefault();
                 setLoading(true);
                 setError('');
                 setAlert(null);
-
+    
                 try {
                     const res = await fetch(`${API_BASE_URL}/auth/login`, {
                         method: "POST",
