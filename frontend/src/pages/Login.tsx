@@ -19,7 +19,7 @@ const AuthPage = ({ onLoginSuccess }: { onLoginSuccess: (user: { email: string; 
         setError('');
         setAlert(null);
         try {
-            const res = await fetch(`${API_BASE_URL}/login`, {
+            const res = await fetch(`${API_BASE_URL}/auth/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password })
