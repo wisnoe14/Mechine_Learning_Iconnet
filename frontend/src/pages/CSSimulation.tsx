@@ -10,7 +10,6 @@ import {
     Loader2, 
     CheckCircle2, 
     XCircle, 
-<<<<<<< HEAD
     FileDown,
     LogOut
 } from 'lucide-react';
@@ -19,12 +18,6 @@ import { useNavigate } from 'react-router-dom';
 // Fungsi untuk memanggil intent OpenAI
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
 
-=======
-    FileDown 
-} from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-
->>>>>>> c650f2cd9391a9bcc07ef75178b2cc8d65633c1c
 const CSSimulation = () => {
     const [topic, setTopic] = useState<Topic>("telecollection");
     const [scenario, setScenario] = useState<ScenarioItem[]>([]);
@@ -38,11 +31,7 @@ const CSSimulation = () => {
 
 
     // --- Backend Configuration ---
-<<<<<<< HEAD
     // API_BASE_URL is already declared at the top of the file.
-=======
-    const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
->>>>>>> c650f2cd9391a9bcc07ef75178b2cc8d65633c1c
 
     // --- Type Definitions ---
     type Topic = "telecollection" | "retention" | "winback";
@@ -63,10 +52,7 @@ const CSSimulation = () => {
         promo: string;
         estimasi_pembayaran: string;
         alasan: string;
-<<<<<<< HEAD
     intent?: string;
-=======
->>>>>>> c650f2cd9391a9bcc07ef75178b2cc8d65633c1c
     };
 
     type HistoryItem = {
@@ -76,10 +62,7 @@ const CSSimulation = () => {
     };
 
     // --- HELPER COMPONENTS ---
-<<<<<<< HEAD
 
-=======
->>>>>>> c650f2cd9391a9bcc07ef75178b2cc8d65633c1c
     const LoadingSpinner = ({ text }: { text: string }) => (
         <div className="flex items-center justify-center gap-2 text-white">
             <Loader2 className="animate-spin h-5 w-5" />
@@ -153,7 +136,6 @@ const CSSimulation = () => {
 
 
     // --- MAIN COMPONENTS ---
-<<<<<<< HEAD
     const ScenarioControls = ({ topic, setTopic, isGenerating, disabled, isSimulationRunning, onStart, onEnd }: {
         topic: Topic;
         setTopic: (topic: Topic) => void;
@@ -162,14 +144,6 @@ const CSSimulation = () => {
         isSimulationRunning: boolean;
         onStart: () => void;
         onEnd: () => void;
-=======
-    const ScenarioControls = ({ topic, setTopic, onStart, isGenerating, disabled }: {
-        topic: Topic;
-        setTopic: (topic: Topic) => void;
-        onStart: () => void;
-        isGenerating: boolean;
-        disabled: boolean;
->>>>>>> c650f2cd9391a9bcc07ef75178b2cc8d65633c1c
     }) => {
         const TOPICS = [
             { key: "telecollection", label: "Telecollection", description: "Penagihan & Recovery", icon: CreditCard },
@@ -206,7 +180,6 @@ const CSSimulation = () => {
                     </div>
                 </div>
                 <button
-<<<<<<< HEAD
                     className={`w-full px-6 py-4 rounded-xl font-bold text-white flex items-center justify-center gap-3 text-lg transition-all duration-300 transform active:scale-95 shadow-lg ${isSimulationRunning ? 'bg-red-600 hover:bg-red-700' : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'}`}
                     onClick={isSimulationRunning ? onEnd : onStart}
                     disabled={isGenerating}
@@ -217,13 +190,6 @@ const CSSimulation = () => {
                     {isSimulationRunning ? 'End Simulasi' : 'Mulai Simulasi'}
                   </>
                 )}
-=======
-                    className="w-full px-6 py-4 rounded-xl font-bold text-white flex items-center justify-center gap-3 text-lg transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed disabled:scale-100"
-                    onClick={onStart}
-                    disabled={disabled}
-                >
-                    {isGenerating ? <LoadingSpinner text="Starting..." /> : <><Sparkles className="w-6 h-6" />Mulai Simulasi</>}
->>>>>>> c650f2cd9391a9bcc07ef75178b2cc8d65633c1c
                 </button>
             </div>
         );
@@ -307,10 +273,7 @@ const CSSimulation = () => {
             </div>
         );
     };
-<<<<<<< HEAD
     
-=======
->>>>>>> c650f2cd9391a9bcc07ef75178b2cc8d65633c1c
             
     const SimulationHistory = ({ history, onExport }: {
         history: HistoryItem[];
@@ -364,7 +327,6 @@ const CSSimulation = () => {
         try {
             // Ambil customer_id dari sessionStorage
             const customer_id = sessionStorage.getItem('customer_id') || "";
-<<<<<<< HEAD
             const token = sessionStorage.getItem('token');
             const response = await fetch(`${API_BASE_URL}/conversation/generate-question/${topic}`, {
                 method: 'POST',
@@ -372,19 +334,10 @@ const CSSimulation = () => {
                     'Content-Type': 'application/json',
                     ...(token ? { Authorization: `Bearer ${token}` } : {})
                 },
-=======
-            const response = await fetch(`${API_BASE_URL}/conversation/generate-question/${topic}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
->>>>>>> c650f2cd9391a9bcc07ef75178b2cc8d65633c1c
                 body: JSON.stringify({ customer_id, context: "" }),
             });
             if (!response.ok) throw new Error('Network response was not ok');
             const scenarioData = await response.json();
-<<<<<<< HEAD
-=======
-            // Patch: jika response hanya berisi question, buat scenario array satu item
->>>>>>> c650f2cd9391a9bcc07ef75178b2cc8d65633c1c
             setScenario([{ q: scenarioData.question, options: [] }]);
         } catch (error) {
             console.error("Failed to fetch scenario:", error);
@@ -405,7 +358,6 @@ const CSSimulation = () => {
             setLoading(false);
         } else {
             try {
-<<<<<<< HEAD
                 const token = sessionStorage.getItem('token');
                 const response = await fetch(`${API_BASE_URL}/predict`, {
                     method: 'POST',
@@ -413,11 +365,6 @@ const CSSimulation = () => {
                         'Content-Type': 'application/json',
                         ...(token ? { Authorization: `Bearer ${token}` } : {})
                     },
-=======
-                const response = await fetch(`${API_BASE_URL}/predict`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
->>>>>>> c650f2cd9391a9bcc07ef75178b2cc8d65633c1c
                     body: JSON.stringify({ topic, conversation: newConversation }),
                 });
                 if (!response.ok) throw new Error('Network response was not ok');
@@ -443,10 +390,7 @@ const CSSimulation = () => {
     const handleReset = () => {
         setScenario([]);
         setResult(null);
-<<<<<<< HEAD
         navigate('/Home')
-=======
->>>>>>> c650f2cd9391a9bcc07ef75178b2cc8d65633c1c
     };
 
     const handleExport = () => {
@@ -471,7 +415,6 @@ const CSSimulation = () => {
         XLSX.writeFile(workbook, "Riwayat_Simulasi_CS.xlsx");
     };
 
-<<<<<<< HEAD
     
 
     const isSimulationRunning = scenario.length > 0 && !result;
@@ -483,15 +426,6 @@ const CSSimulation = () => {
       return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
     };
 
-=======
-    const handleLogout = () => {
-        localStorage.clear();
-        navigate('/'); 
-    };
-
-    const isSimulationRunning = scenario.length > 0 && !result;
-
->>>>>>> c650f2cd9391a9bcc07ef75178b2cc8d65633c1c
     return (
         <div className="min-h-screen bg-gray-100 font-sans">
              <style>{`
@@ -519,7 +453,6 @@ const CSSimulation = () => {
                                 </p>
                             </div>
                         </div>
-<<<<<<< HEAD
                         <div className="flex items-center gap-4">
                             {customerName && (
                               <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-2 shadow-sm">
@@ -529,15 +462,6 @@ const CSSimulation = () => {
                                 <span className="font-semibold text-gray-800 text-base">{customerName}</span>
                               </div>
                             )}
-=======
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={handleLogout}
-                                className="ml-6 px-4 py-2 rounded-lg bg-red-500 text-white font-semibold shadow hover:bg-red-600 transition-all"
-                            >
-                                Logout
-                            </button>
->>>>>>> c650f2cd9391a9bcc07ef75178b2cc8d65633c1c
                         </div>
                     </div>
                 </div>
@@ -549,17 +473,11 @@ const CSSimulation = () => {
                             <ScenarioControls 
                                 topic={topic} 
                                 setTopic={setTopic} 
-<<<<<<< HEAD
                                 isGenerating={isGenerating}
                                 disabled={isSimulationRunning || isGenerating}
                                 isSimulationRunning={isSimulationRunning}
                                 onStart={handleStart}
                                 onEnd={handleReset}
-=======
-                                onStart={handleStart} 
-                                isGenerating={isGenerating}
-                                disabled={isSimulationRunning || isGenerating}
->>>>>>> c650f2cd9391a9bcc07ef75178b2cc8d65633c1c
                             />
                         </div>
                     </aside>

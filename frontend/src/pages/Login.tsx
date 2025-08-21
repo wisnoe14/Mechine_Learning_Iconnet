@@ -13,40 +13,31 @@ const AuthPage = ({ onLoginSuccess }: { onLoginSuccess: (user: { email: string; 
     const navigate = useNavigate();
 
     const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1/endpoints";
-        const handleLogin = async (e: React.FormEvent) => {
-                e.preventDefault();
-                setLoading(true);
-                setError('');
-                setAlert(null);
-    
-                try {
-                    const res = await fetch(`${API_BASE_URL}/auth/login`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ email, password })
-                    });
-                    const data = await res.json();
-<<<<<<< HEAD
-                    if (res.ok && data.access_token) {
-                        // Simpan token JWT ke sessionStorage
-                        sessionStorage.setItem('token', data.access_token);
-                        onLoginSuccess({ email, name: data.name });
-                        navigate('/Home');
-                    } else {
-                        setAlert({ type: 'error', title: 'Login Gagal', message: data.message || 'Login gagal, silakan coba lagi.' });
-=======
-                    if (res.ok && data.success) {
-                        onLoginSuccess({ email, name: data.name });
-                        navigate('/Home');
-                    } else {
-                        setAlert({ type: 'error', title: 'Login Gagal', message: 'Login gagal, silakan coba lagi.' });
->>>>>>> c650f2cd9391a9bcc07ef75178b2cc8d65633c1c
-                    }
-                } catch {
-                    setAlert({ type: 'error', title: 'Error', message: 'Gagal terhubung ke server.' });
-                }
-                setLoading(false);
-        };
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+        setAlert(null);
+        try {
+            const res = await fetch(`${API_BASE_URL}/login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+            if (res.ok && data.access_token) {
+                // Simpan token JWT ke sessionStorage
+                sessionStorage.setItem('token', data.access_token);
+                onLoginSuccess({ email, name: data.name });
+                navigate('/Home');
+            } else {
+                setAlert({ type: 'error', title: 'Login Gagal', message: data.message || 'Login gagal, silakan coba lagi.' });
+            }
+        } catch {
+            setAlert({ type: 'error', title: 'Error', message: 'Gagal terhubung ke server.' });
+        }
+        setLoading(false);
+    };
 
     return (
         <div className="min-h-screen w-full bg-gray-100 flex flex-col items-center justify-center p-4 font-sans">

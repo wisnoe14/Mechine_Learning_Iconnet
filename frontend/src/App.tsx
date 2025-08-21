@@ -1,16 +1,10 @@
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
-<<<<<<< HEAD
+
+import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
 import CSSimulation from "./pages/CSSimulation";
 import Home from "./pages/Home";
 import LoginPage from "./pages/Login";
 import type { ReactNode } from "react";
-=======
-import CSSimulation from "./pages/CSSimulation";
-import Home from "./pages/Home";
-import LoginPage from "./pages/Login";
->>>>>>> c650f2cd9391a9bcc07ef75178b2cc8d65633c1c
 
 
 /**
@@ -53,7 +47,6 @@ const NotFound = () => (
  * Komponen utama aplikasi yang mengatur semua routing.
  */
 export default function App() {
-<<<<<<< HEAD
   function RequireAuth({ children }: { children: ReactNode }) {
     const location = useLocation();
     const navigate = useNavigate();
@@ -83,14 +76,10 @@ export default function App() {
     }
     return <>{children}</>;
   }
-
-=======
->>>>>>> c650f2cd9391a9bcc07ef75178b2cc8d65633c1c
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LoginPage onLoginSuccess={() => {}} />} />
-<<<<<<< HEAD
         <Route path="/Home" element={
           <RequireAuth>
             <Home onLoginSuccess={() => {}} />
@@ -104,19 +93,6 @@ export default function App() {
           </RequireAuth>
         } />
         <Route path="*" element={<NotFound />} />
-=======
-        <Route path="/Home" element={<Home onLoginSuccess={() => {
-                // You can handle login success here, e.g., save customerId to state or context
-                // For now, do nothing or add your logic
-              }}
-            />
-          }
-        />
-        <Route path="/Dashboard" element={<CSSimulation />} />
-        <Route path="*" element={<NotFound />} />
-        
-        
->>>>>>> c650f2cd9391a9bcc07ef75178b2cc8d65633c1c
       </Routes>
     </BrowserRouter>
   );
