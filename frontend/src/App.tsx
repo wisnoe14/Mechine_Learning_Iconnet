@@ -1,7 +1,10 @@
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import { useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import CSSimulation from "./pages/CSSimulation";
 import Home from "./pages/Home";
 import LoginPage from "./pages/Login";
+import type { ReactNode } from "react";
 
 
 /**
@@ -44,21 +47,53 @@ const NotFound = () => (
  * Komponen utama aplikasi yang mengatur semua routing.
  */
 export default function App() {
+  function RequireAuth({ children }: { children: ReactNode }) {
+    const location = useLocation();
+    const navigate = useNavigate();
+    const token = sessionStorage.getItem('token');
+    useEffect(() => {
+      const isLoginPage = location.pathname === '/';
+      if (!token && !isLoginPage) {
+        navigate('/');
+      }
+    }, [location, navigate, token]);
+    if (!token && location.pathname !== '/') {
+      return null; // Jangan render children jika belum login
+    }
+    return <>{children}</>;
+  }
+
+  function RequireCustomerId({ children }: { children: ReactNode }) {
+    const navigate = useNavigate();
+    const customerId = sessionStorage.getItem('customer_id');
+    useEffect(() => {
+      if (!customerId) {
+        navigate('/Home');
+      }
+    }, [customerId, navigate]);
+    if (!customerId) {
+      return null;
+    }
+    return <>{children}</>;
+  }
+
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LoginPage onLoginSuccess={() => {}} />} />
-        <Route path="/Home" element={<Home onLoginSuccess={() => {
-                // You can handle login success here, e.g., save customerId to state or context
-                // For now, do nothing or add your logic
-              }}
-            />
-          }
-        />
-        <Route path="/Dashboard" element={<CSSimulation />} />
+        <Route path="/Home" element={
+          <RequireAuth>
+            <Home onLoginSuccess={() => {}} />
+          </RequireAuth>
+        } />
+        <Route path="/Dashboard" element={
+          <RequireAuth>
+            <RequireCustomerId>
+              <CSSimulation />
+            </RequireCustomerId>
+          </RequireAuth>
+        } />
         <Route path="*" element={<NotFound />} />
-        
-        
       </Routes>
     </BrowserRouter>
   );

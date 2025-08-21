@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import {UserCheck, Loader2 } from 'lucide-react';
+import { UserCheck, Loader2, LogOut } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
 import Alert from '../components/Alert';
 
@@ -12,31 +12,42 @@ const LoginPage = ({ onLoginSuccess }: { onLoginSuccess: (customer_Id: string) =
     const navigate = useNavigate();
 
         const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
-        const handleCheckId = async (e: React.FormEvent) => {
-                e.preventDefault();
-                setLoading(true);
-                setError('');
-                setAlert(null);
+        const token = sessionStorage.getItem('token');
 
-                try {
-                    const res = await fetch(`${API_BASE_URL}/customer/check/${customer_Id}`, {
-                        method: "GET",
-                        headers: { "Content-Type": "application/json" }
-                    });
-                    const data = await res.json();
-                    if (res.ok && data.valid) {
-                        // Simpan customer_Id ke sessionStorage
-                        sessionStorage.setItem('customer_id', customer_Id);
-                        onLoginSuccess(customer_Id);
-                        navigate("/Dashboard");
-                    } else {
-                        setAlert({ type: 'error', title: 'ID Tidak Valid', message: 'ID Pelanggan tidak ditemukan atau tidak valid.' });
+    const handleCheckId = async (e: React.FormEvent) => {
+            e.preventDefault();
+            setLoading(true);
+            setError('');
+            setAlert(null);
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/customer/check/${customer_Id}`, {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...(token ? { Authorization: `Bearer ${token}` } : {})
                     }
-                } catch {
-                    setAlert({ type: 'error', title: 'Error', message: 'Gagal terhubung ke server.' });
+                });
+                const data = await res.json();
+                if (res.ok && data.valid) {
+                    // Simpan customer_Id dan nama ke sessionStorage
+                    sessionStorage.setItem('customer_id', customer_Id);
+                    sessionStorage.setItem('customer_name', data.name || '');
+                    onLoginSuccess(customer_Id);
+                    navigate("/Dashboard");
+                } else {
+                    setAlert({ type: 'error', title: 'ID Tidak Valid', message: 'ID Pelanggan tidak ditemukan atau tidak valid.' });
                 }
-                setLoading(false);
-        };
+            } catch {
+                setAlert({ type: 'error', title: 'Error', message: 'Gagal terhubung ke server.' });
+            }
+            setLoading(false);
+    };
+
+    const handleLogout = () => {
+        sessionStorage.clear();
+        navigate('/');
+    };
 
     return (
         <div className="min-h-screen w-full bg-gray-100 flex flex-col items-center justify-center p-4 font-sans">
@@ -91,8 +102,22 @@ const LoginPage = ({ onLoginSuccess }: { onLoginSuccess: (customer_Id: string) =
                     </form>
                 </div>
             </div>
+            <div className="absolute top-6 right-8 z-10">
+                <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl shadow transition-all"
+                    title="Logout"
+                >
+                    <LogOut className="w-5 h-5" />
+                    <span className="hidden sm:inline">Logout</span>
+                </button>
+            </div>
         </div>
     );
 };
 
 export default LoginPage;
+
+// Untuk request ke backend yang butuh autentikasi, tambahkan header Authorization: Bearer {token}
+// Contoh:
+// fetch(url, { headers: { Authorization: `Bearer ${sessionStorage.getItem('token')}` } })

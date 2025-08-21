@@ -26,11 +26,13 @@ const AuthPage = ({ onLoginSuccess }: { onLoginSuccess: (user: { email: string; 
                         body: JSON.stringify({ email, password })
                     });
                     const data = await res.json();
-                    if (res.ok && data.success) {
+                    if (res.ok && data.access_token) {
+                        // Simpan token JWT ke sessionStorage
+                        sessionStorage.setItem('token', data.access_token);
                         onLoginSuccess({ email, name: data.name });
                         navigate('/Home');
                     } else {
-                        setAlert({ type: 'error', title: 'Login Gagal', message: 'Login gagal, silakan coba lagi.' });
+                        setAlert({ type: 'error', title: 'Login Gagal', message: data.message || 'Login gagal, silakan coba lagi.' });
                     }
                 } catch {
                     setAlert({ type: 'error', title: 'Error', message: 'Gagal terhubung ke server.' });
