@@ -1,5 +1,6 @@
 fastapi
 uvicorn
+<<<<<<< HEAD
 sqlalchemy
 python-jose
 python-dotenv
@@ -9,3 +10,8 @@ pydantic
 mysql-connector-python
 email-validator
 typing-extensions
+=======
+openai
+python-dotenv
+pandas
+>>>>>>> c650f2cd9391a9bcc07ef75178b2cc8d65633c1c
