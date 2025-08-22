@@ -1,6 +1,7 @@
 
 import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import PageTransition from "./components/PageTransition";
 import CSSimulation from "./pages/CSSimulation";
 import Home from "./pages/Home";
 import LoginPage from "./pages/Login";
@@ -47,6 +48,15 @@ const NotFound = () => (
  * Komponen utama aplikasi yang mengatur semua routing.
  */
 export default function App() {
+  const [loading, setLoading] = useState(false);
+
+  // Fungsi untuk delay dan set loading
+  const handlePageChange = async (callback: () => void) => {
+    setLoading(true);
+    await new Promise((resolve) => setTimeout(resolve, 1200)); // delay 1.2 detik
+    callback();
+    setLoading(false);
+  };
   function RequireAuth({ children }: { children: ReactNode }) {
     const location = useLocation();
     const navigate = useNavigate();
@@ -78,11 +88,14 @@ export default function App() {
   }
   return (
     <BrowserRouter>
+      <PageTransition show={loading} />
       <Routes>
-        <Route path="/" element={<LoginPage onLoginSuccess={() => {}} />} />
+        <Route path="/" element={
+          <LoginPage onLoginSuccess={() => handlePageChange(() => {})} />
+        } />
         <Route path="/Home" element={
           <RequireAuth>
-            <Home onLoginSuccess={() => {}} />
+            <Home onLoginSuccess={() => handlePageChange(() => {})} />
           </RequireAuth>
         } />
         <Route path="/Dashboard" element={
