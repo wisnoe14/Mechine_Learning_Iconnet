@@ -338,7 +338,12 @@ const CSSimulation = () => {
             });
             if (!response.ok) throw new Error('Network response was not ok');
             const scenarioData = await response.json();
-            setScenario([{ q: scenarioData.question, options: [] }]);
+            // Pastikan pertanyaan berupa string, ambil dari model_local jika objek
+            let questionText = scenarioData.question;
+            if (typeof questionText === 'object' && questionText !== null) {
+                questionText = questionText.model_local ?? '';
+            }
+            setScenario([{ q: questionText, options: [] }]);
         } catch (error) {
             console.error("Failed to fetch scenario:", error);
             alert("Gagal mengambil skenario dari server. Silakan coba lagi.");
@@ -390,7 +395,7 @@ const CSSimulation = () => {
     const handleReset = () => {
         setScenario([]);
         setResult(null);
-        navigate('/Home')
+        navigate('/Result');
     };
 
     const handleExport = () => {

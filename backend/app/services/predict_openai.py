@@ -7,9 +7,18 @@ VECTORIZER_PATH = os.path.join(os.path.dirname(__file__), '../training/models/ve
 clf_intent = load(MODEL_PATH)
 vectorizer = load(VECTORIZER_PATH)
 
-def predict_intent(question: str) -> str:
+def predict_intent_with_confidence(question: str):
     X_vec = vectorizer.transform([question])
     intent = clf_intent.predict(X_vec)[0]
+    if hasattr(clf_intent, "predict_proba"):
+        proba = clf_intent.predict_proba(X_vec)[0]
+        confidence = max(proba)
+    else:
+        confidence = None
+    return intent, confidence
+
+def predict_intent(question: str) -> str:
+    intent, _ = predict_intent_with_confidence(question)
     return intent
 
 if __name__ == '__main__':
