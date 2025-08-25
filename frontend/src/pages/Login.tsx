@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, Loader2 } from 'lucide-react';
+import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Alert from '../components/Alert';
 
@@ -7,6 +7,7 @@ import Alert from '../components/Alert';
 const AuthPage = ({ onLoginSuccess }: { onLoginSuccess: (user: { email: string; name: string }) => void }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [alert, setAlert] = useState<{ type: 'success' | 'error', title: string, message: string } | null>(null);
@@ -40,7 +41,15 @@ const AuthPage = ({ onLoginSuccess }: { onLoginSuccess: (user: { email: string; 
     };
 
     return (
-        <div className="min-h-screen w-full bg-gray-100 flex flex-col items-center justify-center p-4 font-sans">
+        <div
+            className="min-h-screen w-full flex flex-col items-center justify-center p-4 font-sans"
+            style={{
+                backgroundImage: 'url(/bg_login.jpeg)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+            }}
+        >
             <div className="w-full max-w-md">
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold text-gray-800">ICONNET AI Assistant</h1>
@@ -82,13 +91,25 @@ const AuthPage = ({ onLoginSuccess }: { onLoginSuccess: (user: { email: string; 
                                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                                 <input
                                     id="password"
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     placeholder="••••••••"
-                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     required
                                 />
+                                <button
+                                    type="button"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                    onClick={() => setShowPassword((prev) => !prev)}
+                                    tabIndex={-1}
+                                >
+                                    {showPassword ? (
+                                        <EyeOff className="h-5 w-5" />
+                                    ) : (
+                                        <Eye className="h-5 w-5" />
+                                    )}
+                                </button>
                             </div>
                         </div>
                         {error && <p className="text-sm text-red-600 text-center">{error}</p>}

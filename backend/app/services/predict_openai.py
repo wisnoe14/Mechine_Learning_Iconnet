@@ -1,8 +1,8 @@
 import os
 from joblib import load
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), '../model/model_openai.pkl')
-VECTORIZER_PATH = os.path.join(os.path.dirname(__file__), '../model/vectorizer_openai.pkl')
+MODEL_PATH = os.path.join(os.path.dirname(__file__), '../training/models/model_cs.pkl')
+VECTORIZER_PATH = os.path.join(os.path.dirname(__file__), '../training/models/vectorizer_cs.pkl')
 
 clf_intent = load(MODEL_PATH)
 vectorizer = load(VECTORIZER_PATH)

@@ -2,6 +2,7 @@ from openai import OpenAI
 import pandas as pd
 import os
 from app.core.config import settings
+from app.services.predict_openai import predict_intent
 
 def generate_chatgpt_response(prompt: str) -> str:
     """Generate a response from GPT model based on the given prompt."""
@@ -48,11 +49,8 @@ def save_conversation_to_excel(customer_id, topic, question, answer, extra):
     df.to_excel(EXCEL_PATH, index=False)
 
 def process_customer_answer(answer: str) -> dict:
-    # Placeholder: implement ML or rules here
+    # Gunakan model untuk prediksi intent
+    intent = predict_intent(answer)
     return {
-        "status": "prediksi_status",
-        "minat": "prediksi_minat",
-        "promo": "prediksi_promo",
-        "estimasi_pembayaran": "prediksi_estimasi",
-        "alasan": "prediksi_alasan"
+        "intent": intent
     }

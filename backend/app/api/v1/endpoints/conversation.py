@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.services.gpt_service import generate_question, save_conversation_to_excel, process_customer_answer
+from app.core.chatbot_engine import engine
 
 router = APIRouter()
 
@@ -31,5 +32,10 @@ def generate_question_endpoint(topic: str, req: QuestionRequest):
 def answer_endpoint(req: AnswerRequest):
     answer = req.manual_input if req.manual_input else req.selected_option
     prediction = process_customer_answer(answer)
+    # Generate pertanyaan berikutnya dari dataset
+    next_question = engine.get_next_question(answer)
     save_conversation_to_excel(req.customer_id, req.topic, req.question, answer, prediction)
-    return {"prediction": prediction}
+    return {
+        "prediction": prediction,
+        "next_question": next_question
+    }
