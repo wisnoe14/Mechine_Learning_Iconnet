@@ -5,7 +5,6 @@ import PageTransition from "./components/PageTransition";
 import CSSimulation from "./pages/CSSimulation";
 import Home from "./pages/Home";
 import LoginPage from "./pages/Login";
-import ResultPage from "./pages/ResultPage";
 import type { ReactNode } from "react";
 
 
@@ -104,15 +103,6 @@ export default function App() {
             <RequireCustomerId>
               <CSSimulation />
             </RequireCustomerId>
-          </RequireAuth>
-        } />
-        <Route path="/Result" element={
-          <RequireAuth>
-            <ResultPage
-              prediction="Contoh prediksi akhir"
-              conversation={Array.isArray([]) ? [] : []}
-              excelUrl={"/conversations.xlsx"}
-            />
           </RequireAuth>
         } />
         <Route path="*" element={<NotFound />} />

@@ -20,9 +20,9 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/
 
 const CSSimulation = () => {
     const [topic, setTopic] = useState<Topic>("telecollection");
-    const [scenario, setScenario] = useState<ScenarioItem[]>([]);
+    const [currentQuestion, setCurrentQuestion] = useState<ScenarioItem | null>(null);
     const [conversation, setConversation] = useState<ConversationItem[]>([]);
-    const [currentStep, setCurrentStep] = useState(0);
+    // Removed unused isLastQuestion state
     const [result, setResult] = useState<Prediction | null>(null);
     const [loading, setLoading] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -210,6 +210,8 @@ const CSSimulation = () => {
             }
         };
 
+        // Batasi opsi maksimal 4 dan fallback jika kosong
+        const limitedOptions = Array.isArray(options) && options.length > 0 ? options.slice(0, 4) : ['Jawab manual'];
         return (
             <div className="w-full max-w-2xl mx-auto bg-white/80 backdrop-blur-lg p-6 rounded-2xl shadow-xl border border-gray-200 space-y-5">
                 <div>
@@ -217,7 +219,7 @@ const CSSimulation = () => {
                     <p className="text-xl font-semibold text-gray-800">{question}</p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {options.map((opt, i) => (
+                    {limitedOptions.map((opt, i) => (
                         <button key={i} onClick={() => onAnswer(opt)} disabled={loading} className="text-left p-4 bg-white hover:bg-blue-50 border border-gray-300 rounded-lg transition-all duration-200 disabled:opacity-50 hover:border-blue-400 hover:shadow-md font-medium text-gray-700">
                             {opt}
                         </button>
@@ -323,9 +325,8 @@ const CSSimulation = () => {
         setIsGenerating(true);
         setResult(null);
         setConversation([]);
-        setCurrentStep(0);
+        // Removed setIsLastQuestion(false) as isLastQuestion is unused
         try {
-            // Ambil customer_id dari sessionStorage
             const customer_id = sessionStorage.getItem('customer_id') || "";
             const token = sessionStorage.getItem('token');
             const response = await fetch(`${API_BASE_URL}/conversation/generate-question/${topic}`, {
@@ -338,16 +339,17 @@ const CSSimulation = () => {
             });
             if (!response.ok) throw new Error('Network response was not ok');
             const scenarioData = await response.json();
-            // Pastikan pertanyaan berupa string, ambil dari model_local jika objek
             let questionText = scenarioData.question;
             if (typeof questionText === 'object' && questionText !== null) {
                 questionText = questionText.model_local ?? '';
             }
-            setScenario([{ q: questionText, options: [] }]);
+            // Batasi opsi maksimal 4
+            const options = Array.isArray(scenarioData.options) ? scenarioData.options.slice(0, 4) : [];
+            setCurrentQuestion({ q: questionText, options });
         } catch (error) {
             console.error("Failed to fetch scenario:", error);
             alert("Gagal mengambil skenario dari server. Silakan coba lagi.");
-            setScenario([]);
+            setCurrentQuestion(null);
         } finally {
             setIsGenerating(false);
         }
@@ -355,47 +357,63 @@ const CSSimulation = () => {
 
     const handleAnswer = async (answer: string) => {
         setLoading(true);
-        const newConversation = [...conversation, { q: scenario[currentStep].q, a: answer }];
+        const newConversation = [...conversation, { q: currentQuestion?.q || "", a: answer }];
         setConversation(newConversation);
 
-        if (currentStep + 1 < scenario.length) {
-            setCurrentStep(currentStep + 1);
-            setLoading(false);
-        } else {
-            try {
-                const token = sessionStorage.getItem('token');
-                const response = await fetch(`${API_BASE_URL}/predict`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(token ? { Authorization: `Bearer ${token}` } : {})
-                    },
-                    body: JSON.stringify({ topic, conversation: newConversation }),
-                });
-                if (!response.ok) throw new Error('Network response was not ok');
-                const predictionData = await response.json();
-                const prediction = predictionData.prediction;
+        try {
+            const token = sessionStorage.getItem('token');
+            const customer_id = sessionStorage.getItem('customer_id') || "";
+            // Kirim jawaban ke backend untuk dapatkan pertanyaan berikutnya
+            const response = await fetch(`${API_BASE_URL}/conversation/next-question`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({ customer_id, topic, conversation: newConversation }),
+            });
+            if (!response.ok) throw new Error('Network response was not ok');
+            const data = await response.json();
+            if (data.is_last) {
+                // Prediksi sudah dikembalikan langsung dari backend
+                const prediction = data.prediction;
                 setResult(prediction);
-
                 const historyItem: HistoryItem = {
                     date: new Date().toLocaleString('id-ID'),
                     topic: topic,
                     result: prediction
                 };
                 setSimulationHistory(prev => [historyItem, ...prev]);
-            } catch (error) {
-                console.error("Failed to get prediction:", error);
-                alert("Gagal mendapatkan prediksi dari server.");
-            } finally {
-                setLoading(false);
+                setCurrentQuestion(null);
+            } else {
+                // Tampilkan pertanyaan berikutnya dengan validasi dan fallback
+                let questionText = data.question;
+                if (typeof questionText === 'object' && questionText !== null) {
+                    questionText = questionText.model_local ?? '';
+                }
+                // Fallback jika pertanyaan kosong atau hanya label
+                if (!questionText || questionText.trim().length < 5) {
+                    questionText = 'Pertanyaan tidak tersedia. Silakan jawab manual atau ulangi simulasi.';
+                }
+                // Pastikan options selalu array dan tidak kosong
+                let options = Array.isArray(data.options) ? data.options.slice(0, 4) : [];
+                if (!options || options.length === 0) {
+                    options = ['Jawab manual'];
+                }
+                setCurrentQuestion({ q: questionText, options });
             }
+        } catch (error) {
+            console.error("Failed to get next question or prediction:", error);
+            alert("Gagal mendapatkan pertanyaan/prediksi dari server.");
+        } finally {
+            setLoading(false);
         }
     };
 
     const handleReset = () => {
-        setScenario([]);
-        setResult(null);
-        navigate('/Result');
+    setCurrentQuestion(null);
+    setResult(null);
+    navigate('/Result');
     };
 
     const handleExport = () => {
@@ -422,7 +440,7 @@ const CSSimulation = () => {
 
     
 
-    const isSimulationRunning = scenario.length > 0 && !result;
+    const isSimulationRunning = currentQuestion !== null && !result;
 
     // Ambil nama dari sessionStorage
     const customerName = sessionStorage.getItem('customer_name') || '';
@@ -502,13 +520,13 @@ const CSSimulation = () => {
                                 <p className="text-gray-600 mt-4">Mempersiapkan skenario AI, mohon tunggu...</p>
                             </div>
                         )}
-                        {isSimulationRunning && (
-                                <AnswerInput 
-                                    question={scenario[currentStep].q}
-                                    options={scenario[currentStep].options}
-                                    onAnswer={handleAnswer}
-                                    loading={loading}
-                                />
+                        {isSimulationRunning && currentQuestion && (
+                            <AnswerInput 
+                                question={currentQuestion.q}
+                                options={currentQuestion.options}
+                                onAnswer={handleAnswer}
+                                loading={loading}
+                            />
                         )}
                         {result && (
                             <PredictionResult result={result} topic={topic} onReset={handleReset} />
