@@ -22,11 +22,11 @@ const CSSimulation = () => {
     const [topic, setTopic] = useState<Topic>("telecollection");
     const [currentQuestion, setCurrentQuestion] = useState<ScenarioItem | null>(null);
     const [conversation, setConversation] = useState<ConversationItem[]>([]);
-    // Removed unused isLastQuestion state
     const [result, setResult] = useState<Prediction | null>(null);
     const [loading, setLoading] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [simulationHistory, setSimulationHistory] = useState<HistoryItem[]>([]);
+    const [isStatusStep, setIsStatusStep] = useState(false);
     const navigate = useNavigate();
 
 
@@ -47,12 +47,18 @@ const CSSimulation = () => {
     };
 
     type Prediction = {
+    pertanyaan_cs?: string;
+    jawaban_pelanggan?: string;
+        customer_id?: string;
+        mode?: string;
+        status_dihubungi?: string;
         status: string;
-        minat: string;
-        promo: string;
+        jenis_promo?: string;
         estimasi_pembayaran: string;
         alasan: string;
-    intent?: string;
+        minat?: string;
+        promo?: string;
+        intent?: string;
     };
 
     type HistoryItem = {
@@ -216,7 +222,22 @@ const CSSimulation = () => {
             <div className="w-full max-w-2xl mx-auto bg-white/80 backdrop-blur-lg p-6 rounded-2xl shadow-xl border border-gray-200 space-y-5">
                 <div>
                     <p className="text-sm font-semibold text-blue-700 mb-2">Pertanyaan AI:</p>
-                    <p className="text-xl font-semibold text-gray-800">{question}</p>
+                    <p
+                        className="text-xl font-semibold text-gray-800"
+                        style={{
+                            fontFamily: 'Times New Roman, Times, serif',
+                            whiteSpace: 'pre-line',
+                            lineHeight: '1.6',
+                            marginBottom: '12px',
+                            textAlign: 'justify',
+                            background: '#f8f8f8',
+                            borderRadius: '8px',
+                            padding: '16px',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                        }}
+                    >
+                        {question}
+                    </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {limitedOptions.map((opt, i) => (
@@ -255,23 +276,25 @@ const CSSimulation = () => {
         return (
             <div className="w-full max-w-2xl mx-auto bg-white p-8 rounded-2xl shadow-2xl border border-gray-200 space-y-6">
                 <div className="text-center">
-                    <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center ${isSuccess ? 'bg-green-100' : 'bg-red-100'}`}>
+                    <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center ${isSuccess ? 'bg-green-100' : 'bg-red-100'}`}> 
                         {isSuccess ? <CheckCircle2 className="w-10 h-10 text-green-600" /> : <XCircle className="w-10 h-10 text-red-600" />}
                     </div>
                     <h2 className="text-3xl font-bold text-gray-800 mt-4">Hasil Prediksi AI</h2>
                     <p className="text-gray-500">Analisis untuk skenario: <span className="font-semibold">{topic}</span></p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div className="bg-gray-50 p-4 rounded-lg"><strong>Customer ID:</strong> <span className="font-semibold text-gray-800">{result.customer_id}</span></div>
+                    <div className="bg-gray-50 p-4 rounded-lg"><strong>Mode:</strong> <span className="font-semibold text-gray-800">{result.mode}</span></div>
+                    <div className="bg-gray-50 p-4 rounded-lg"><strong>Status Dihubungi:</strong> <span className="font-semibold text-gray-800">{result.status_dihubungi}</span></div>
                     <div className="bg-gray-50 p-4 rounded-lg"><strong>Status:</strong> <span className={`font-semibold ${isSuccess ? 'text-green-700' : 'text-red-700'}`}>{result.status}</span></div>
-                    <div className="bg-gray-50 p-4 rounded-lg"><strong>Minat Pelanggan:</strong> <span className="font-semibold text-gray-800">{result.minat}</span></div>
-                    <div className="bg-gray-50 p-4 rounded-lg"><strong>Estimasi Bayar:</strong> <span className="font-semibold text-gray-800">{result.estimasi_pembayaran}</span></div>
-                    <div className="bg-gray-50 p-4 rounded-lg"><strong>Rekomendasi Promo:</strong> <span className="font-semibold text-gray-800">{result.promo}</span></div>
+                    <div className="bg-gray-50 p-4 rounded-lg"><strong>Jenis Promo:</strong> <span className="font-semibold text-gray-800">{result.jenis_promo}</span></div>
+                    <div className="bg-gray-50 p-4 rounded-lg"><strong>Estimasi Pembayaran:</strong> <span className="font-semibold text-gray-800">{result.estimasi_pembayaran}</span></div>
                 </div>
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                     <h4 className="font-semibold text-gray-800 mb-1">Ringkasan Alasan:</h4>
                     <p className="text-gray-700">{result.alasan}</p>
                 </div>
-                <button onClick={onReset} className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all shadow-lg">Mulai Simulasi Baru</button>
+                <button onClick={onReset} className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-all shadow-lg">End Simulasi</button>
             </div>
         );
     };
@@ -295,21 +318,29 @@ const CSSimulation = () => {
                     <table className="w-full text-sm text-left text-gray-600">
                         <thead className="text-xs text-gray-700 uppercase bg-gray-100">
                             <tr>
-                                <th className="px-6 py-3">Tanggal</th>
-                                <th className="px-6 py-3">Skenario</th>
+                                <th className="px-6 py-3">Customer ID</th>
+                                <th className="px-6 py-3">Mode</th>
+                                <th className="px-6 py-3">Status Dihubungi</th>
+                                <th className="px-6 py-3">Pertanyaan CS</th>
+                                <th className="px-6 py-3">Jawaban Pelanggan</th>
                                 <th className="px-6 py-3">Status</th>
-                                <th className="px-6 py-3">Minat</th>
+                                <th className="px-6 py-3">Jenis Promo</th>
+                                <th className="px-6 py-3">Estimasi Pembayaran</th>
                                 <th className="px-6 py-3">Alasan</th>
                             </tr>
                         </thead>
                         <tbody>
                             {history.map((item, index) => (
                                 <tr key={index} className="bg-white border-b hover:bg-gray-50">
-                                    <td className="px-6 py-4">{item.date}</td>
-                                    <td className="px-6 py-4 font-medium text-gray-800">{item.topic}</td>
-                                    <td className="px-6 py-4"><span className={`px-2 py-1 rounded-full text-xs font-medium ${item.result.status === 'Success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{item.result.status}</span></td>
-                                    <td className="px-6 py-4">{item.result.minat}</td>
-                                    <td className="px-6 py-4 truncate max-w-xs">{item.result.alasan}</td>
+                                    <td className="px-6 py-4">{item.result.customer_id || '-'}</td>
+                                    <td className="px-6 py-4">{item.result.mode || '-'}</td>
+                                    <td className="px-6 py-4">{item.result.status_dihubungi || '-'}</td>
+                                    <td className="px-6 py-4">{item.result.pertanyaan_cs || '-'}</td>
+                                    <td className="px-6 py-4">{item.result.jawaban_pelanggan || '-'}</td>
+                                    <td className="px-6 py-4">{item.result.status || '-'}</td>
+                                    <td className="px-6 py-4">{item.result.jenis_promo || '-'}</td>
+                                    <td className="px-6 py-4">{item.result.estimasi_pembayaran || '-'}</td>
+                                    <td className="px-6 py-4">{item.result.alasan || '-'}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -325,30 +356,17 @@ const CSSimulation = () => {
         setIsGenerating(true);
         setResult(null);
         setConversation([]);
-        // Removed setIsLastQuestion(false) as isLastQuestion is unused
+        setIsStatusStep(true);
         try {
-            const customer_id = sessionStorage.getItem('customer_id') || "";
-            const token = sessionStorage.getItem('token');
-            const response = await fetch(`${API_BASE_URL}/conversation/generate-question/${topic}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token ? { Authorization: `Bearer ${token}` } : {})
-                },
-                body: JSON.stringify({ customer_id, context: "" }),
-            });
+            const response = await fetch(`${API_BASE_URL}/conversation/status-dihubungi-options`);
             if (!response.ok) throw new Error('Network response was not ok');
-            const scenarioData = await response.json();
-            let questionText = scenarioData.question;
-            if (typeof questionText === 'object' && questionText !== null) {
-                questionText = questionText.model_local ?? '';
-            }
-            // Batasi opsi maksimal 4
-            const options = Array.isArray(scenarioData.options) ? scenarioData.options.slice(0, 4) : [];
-            setCurrentQuestion({ q: questionText, options });
+            const data = await response.json();
+            // setStatusDihubungiOptions(Array.isArray(data.options) ? data.options : []);
+            // No need to set statusDihubungiOptions, just use data.options directly.
+            setCurrentQuestion({ q: data.question, options: Array.isArray(data.options) ? data.options : [] });
         } catch (error) {
-            console.error("Failed to fetch scenario:", error);
-            alert("Gagal mengambil skenario dari server. Silakan coba lagi.");
+            console.error("Failed to fetch status dihubungi options:", error);
+            alert("Gagal mengambil opsi status dihubungi dari server. Silakan coba lagi.");
             setCurrentQuestion(null);
         } finally {
             setIsGenerating(false);
@@ -357,13 +375,54 @@ const CSSimulation = () => {
 
     const handleAnswer = async (answer: string) => {
         setLoading(true);
+        // Jika sedang di step status dihubungi, setelah user pilih, lanjut ke pertanyaan model
+        if (isStatusStep) {
+            setIsStatusStep(false);
+            // Kirim Q/A: status_dihubungi sebagai q, a kosong
+            // Pastikan persis sama dengan key di flow
+            let statusQ = answer.trim();
+            if (statusQ === "Bisa Dihubungi" || statusQ === "Tidak Dapat Dihubungi") {
+                // OK
+            } else {
+                // Normalisasi ke key yang valid
+                if (statusQ.toLowerCase().includes("bisa")) statusQ = "Bisa Dihubungi";
+                else if (statusQ.toLowerCase().includes("tidak")) statusQ = "Tidak Dapat Dihubungi";
+            }
+            const newConversation = [{ q: statusQ, a: "" }];
+            console.log("Payload to backend:", newConversation);
+            setConversation(newConversation);
+            try {
+                const customer_id = sessionStorage.getItem('customer_id') || "";
+                const token = sessionStorage.getItem('token');
+                const response = await fetch(`${API_BASE_URL}/conversation/generate-question/${topic}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { Authorization: `Bearer ${token}` } : {})
+                    },
+                    body: JSON.stringify({ customer_id, context: newConversation, topic }),
+                });
+                if (!response.ok) throw new Error('Network response was not ok');
+                const scenarioData = await response.json();
+                const questionText = typeof scenarioData.question === 'string' ? scenarioData.question : '';
+                const options = Array.isArray(scenarioData.options) ? scenarioData.options.slice(0, 4) : [];
+                setCurrentQuestion({ q: questionText, options });
+            } catch (error) {
+                console.error("Failed to fetch scenario:", error);
+                alert("Gagal mengambil skenario dari server. Silakan coba lagi.");
+                setCurrentQuestion(null);
+            } finally {
+                setLoading(false);
+            }
+            return;
+        }
+        // Step pertanyaan model seperti biasa
         const newConversation = [...conversation, { q: currentQuestion?.q || "", a: answer }];
         setConversation(newConversation);
 
         try {
             const token = sessionStorage.getItem('token');
             const customer_id = sessionStorage.getItem('customer_id') || "";
-            // Kirim jawaban ke backend untuk dapatkan pertanyaan berikutnya
             const response = await fetch(`${API_BASE_URL}/conversation/next-question`, {
                 method: 'POST',
                 headers: {
@@ -375,7 +434,6 @@ const CSSimulation = () => {
             if (!response.ok) throw new Error('Network response was not ok');
             const data = await response.json();
             if (data.is_last) {
-                // Prediksi sudah dikembalikan langsung dari backend
                 const prediction = data.prediction;
                 setResult(prediction);
                 const historyItem: HistoryItem = {
@@ -386,21 +444,13 @@ const CSSimulation = () => {
                 setSimulationHistory(prev => [historyItem, ...prev]);
                 setCurrentQuestion(null);
             } else {
-                // Tampilkan pertanyaan berikutnya dengan validasi dan fallback
-                let questionText = data.question;
-                if (typeof questionText === 'object' && questionText !== null) {
-                    questionText = questionText.model_local ?? '';
-                }
-                // Fallback jika pertanyaan kosong atau hanya label
-                if (!questionText || questionText.trim().length < 5) {
-                    questionText = 'Pertanyaan tidak tersedia. Silakan jawab manual atau ulangi simulasi.';
-                }
-                // Pastikan options selalu array dan tidak kosong
+                const questionText = typeof data.question === 'string' ? data.question : '';
+                const validQuestion = questionText && questionText.trim().length >= 5 ? questionText : 'Pertanyaan tidak tersedia. Silakan jawab manual atau ulangi simulasi.';
                 let options = Array.isArray(data.options) ? data.options.slice(0, 4) : [];
                 if (!options || options.length === 0) {
                     options = ['Jawab manual'];
                 }
-                setCurrentQuestion({ q: questionText, options });
+                setCurrentQuestion({ q: validQuestion, options });
             }
         } catch (error) {
             console.error("Failed to get next question or prediction:", error);
@@ -413,7 +463,7 @@ const CSSimulation = () => {
     const handleReset = () => {
     setCurrentQuestion(null);
     setResult(null);
-    navigate('/Result');
+    navigate('/Home');
     };
 
     const handleExport = () => {
@@ -494,8 +544,8 @@ const CSSimulation = () => {
                     <aside className="lg:col-span-4 xl:col-span-3">
                         <div className="lg:sticky lg:top-28">
                             <ScenarioControls 
-                                topic={topic} 
-                                setTopic={setTopic} 
+                                topic={topic}
+                                setTopic={setTopic}
                                 isGenerating={isGenerating}
                                 disabled={isSimulationRunning || isGenerating}
                                 isSimulationRunning={isSimulationRunning}

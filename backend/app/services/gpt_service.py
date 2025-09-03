@@ -1,170 +1,142 @@
-
-import pandas as pd
+import hashlib
 import os
 from app.core.config import settings
-from app.services.predict_openai import predict_intent_with_confidence
 from openai import OpenAI
+from functools import lru_cache
+
+# Cache dictionary untuk response OpenAI
+_openai_cache = {}
+
+def cache_key(*args, **kwargs):
+    key_str = str(args) + str(kwargs)
+    return hashlib.md5(key_str.encode()).hexdigest()
+def predict_status_promo_openai(answers: list) -> dict:
+    """
+    Prediksi status dan promo menggunakan OpenAI berdasarkan seluruh jawaban user.
+    """
+    percakapan = " | ".join([str(a) for a in answers if a])
+    prompt = (
+        f"Berdasarkan percakapan berikut: {percakapan}. "
+        "Prediksikan status pelanggan (pilihan: Pelanggan tidak dapat dihubungi, Closing, Pelanggan dapat dihubungi, Bersedia Membayar) "
+        "dan jenis promo yang sesuai (pilihan: Tidak Ada Promo, Promo Diskon, Promo Cashback, Promo Gratis Bulan, Promo Lainnya). "
+        "Format output: Status: <status>, Promo: <jenis_promo>, Estimasi Pembayaran: <estimasi jika ada, jika tidak tulis 'Belum tersedia'>, Alasan: <ringkas alasan dari jawaban>. Jawab maksimal 7 kata per field."
+    )
+    key = cache_key(prompt, "predict_status_promo_openai")
+    if key in _openai_cache:
+        content = _openai_cache[key]
+    else:
+        response = client.chat.completions.create(
+            model="gpt-5-nano",
+            messages=[
+                {"role": "system", "content": "Kamu adalah asisten customer service Iconnet yang profesional. Jawab hanya sesuai format yang diminta. Jawab maksimal 7 kata per field."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.5,
+            max_tokens=40
+        )
+        content = response.choices[0].message.content.strip()
+        _openai_cache[key] = content
+    # Parsing output sederhana
+    result = {}
+    for line in content.split(','):
+        if ':' in line:
+            k, v = line.split(':', 1)
+            result[k.strip().lower().replace(' ', '_')] = v.strip()
+    return result
 
 
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
 def generate_chatgpt_response(prompt: str) -> dict:
-    """Gabungan: model lokal dulu, jika confidence rendah, panggil OpenAI."""
-    intent, confidence = predict_intent_with_confidence(prompt)
-    result = {"model_local": intent, "confidence": confidence}
-    # Jika confidence rendah (<0.6) atau None, panggil OpenAI untuk pertanyaan baru
-    if confidence is None or confidence < 0.6:
+    """
+    Generate response using OpenAI for customer service.
+    """
+    key = cache_key(prompt, "generate_chatgpt_response")
+    if key in _openai_cache:
+        question = _openai_cache[key]
+    else:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-5-nano",
             messages=[
-                {"role": "system", "content": "Kamu adalah asisten customer service Iconnet yang ramah. Tugasmu hanya mengajukan satu pertanyaan lanjutan yang relevan untuk customer service, bukan label intent, bukan jawaban, dan bukan penjelasan. Format output harus berupa satu pertanyaan saja."},
-                {"role": "user", "content": f"Percakapan: {prompt}. Mohon berikan satu pertanyaan customer service yang relevan untuk langkah selanjutnya."}
+                {"role": "system", "content": "Kamu adalah asisten customer service Iconnet yang ramah. Jawab satu pertanyaan singkat, maksimal 7 kata."},
+                {"role": "user", "content": f"Percakapan: {prompt}. Mohon berikan satu pertanyaan customer service yang relevan untuk langkah selanjutnya. Jawab maksimal 7 kata."}
             ],
-            temperature=0.7,
-            max_tokens=100
+            temperature=0.5,
+            max_tokens=20
         )
-        result["question"] = response.choices[0].message.content.strip()
-    return result
-
-
-EXCEL_PATH = "conversations.xlsx"
+        question = response.choices[0].message.content.strip()
+        _openai_cache[key] = question
+    return {"question": question}
 
 def generate_question(topic: str, context: str = "") -> dict:
-    # context sekarang adalah list pasangan Q&A
-    mode = topic
-    conversation_str = ""
-    if isinstance(context, list):
-        # Format percakapan sebagai string untuk prompt
-        for idx, pair in enumerate(context):
-            q = pair.get("q", "")
-            a = pair.get("a", "")
-            if q:
-                conversation_str += f"Q{idx+1}: {q}\n"
-            if a:
-                conversation_str += f"A{idx+1}: {a}\n"
+    """
+    Generate a customer service question and 4 answer options using OpenAI, based on topic and conversation context.
+    """
+    if context is None or str(context).lower() == 'nan' or str(context).strip() == '':
+        context = ""
+    if isinstance(topic, dict):
+        mode_raw = topic.get('mode', str(topic))
+        status_raw = topic.get('status_dihubungi', topic.get('status', ''))
     else:
-        conversation_str = str(context)
+        mode_raw = str(topic)
+        status_raw = ''
+    mode = mode_raw.strip().capitalize()
+    status = status_raw.strip()
+    history = context if isinstance(context, list) else []
 
-    prompt = (
-        f"Topik: {mode}\nPercakapan:\n{conversation_str}\n"
-        "Tugasmu: Buat satu pertanyaan customer service yang relevan dan lanjutan, jangan mengulang pertanyaan sebelumnya, jangan mengirim label intent, jangan mengirim jawaban, dan jangan penjelasan. Format output HARUS berupa satu pertanyaan customer service yang logis untuk langkah berikutnya, sesuai dengan percakapan di atas."
-    ).strip()
-    print("[DEBUG] Prompt ke OpenAI:", prompt)
-    response = generate_chatgpt_response(prompt)
-    print(f"[DEBUG] Model local: {response.get('model_local')}")
-    print(f"[DEBUG] OpenAI question: {response.get('question')}")
-    print(f"[DEBUG] Confidence: {response.get('confidence')}")
+    percakapan = " | ".join([str(q) for q in history if q]) if history else ""
 
-    # Ambil jawaban terakhir dari context
-    last_answer = ""
-    if isinstance(context, list) and len(context) > 0:
-        last_answer = str(context[-1].get("a", "")).strip().lower()
+    # Prompt for question generation
+    prompt_q = (
+        f"Mode: {mode}. Status: {status}. Percakapan: {percakapan}. "
+        "Tulis pertanyaan CS singkat dan relevan. Satu kalimat saja."
+    )
+    key_q = cache_key(prompt_q, "generate_question_q")
+    if key_q in _openai_cache:
+        question = _openai_cache[key_q]
+    else:
+        response_q = client.chat.completions.create(
+            model="gpt-5-nano",
+            messages=[
+                {"role": "system", "content": "Tugasmu hanya membuat satu pertanyaan CS singkat dan relevan. Jawab maksimal 7 kata."},
+                {"role": "user", "content": prompt_q + " Jawab maksimal 7 kata."}
+            ],
+            temperature=0.5,
+            max_tokens=20
+        )
+        question = response_q.choices[0].message.content.strip()
+        _openai_cache[key_q] = question
 
-    use_local_model = response.get('confidence', 0) >= 0.6
-    question_text = ""
-    options = []
-    # Path dataset absolut dari root backend/app
-    dataset_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'dataset', 'dataset_filled_status_promo.xlsx'))
-    try:
-        df_qa = pd.read_excel(dataset_path)
-        # Filter data sesuai mode
-        if 'Mode' in df_qa.columns:
-            df_qa_mode = df_qa[df_qa['Mode'].str.lower().str.strip() == topic.lower().strip()]
-        else:
-            df_qa_mode = df_qa
-        # Validate columns
-        if 'Jawaban_Pelanggan' not in df_qa_mode.columns or 'Pertanyaan_CS' not in df_qa_mode.columns:
-            raise ValueError("Kolom 'Jawaban_Pelanggan' atau 'Pertanyaan_CS' tidak ditemukan di dataset.")
-    except Exception as e:
-        print(f"[ERROR] Gagal load dataset: {e}")
-        df_qa_mode = None
+    # Prompt for answer options generation
+    prompt_opt = (
+        f"Buat 4 opsi jawaban singkat untuk pertanyaan: '{question}'. Pisahkan dengan |."
+    )
+    key_opt = cache_key(prompt_opt, "generate_question_opt")
+    if key_opt in _openai_cache:
+        options_raw = _openai_cache[key_opt]
+    else:
+        response_opt = client.chat.completions.create(
+            model="gpt-5-nano",
+            messages=[
+                {"role": "system", "content": "Jawab hanya 4 opsi singkat, dipisahkan |. Maksimal 7 kata per opsi."},
+                {"role": "user", "content": prompt_opt + " Jawab maksimal 7 kata per opsi."}
+            ],
+            temperature=0.5,
+            max_tokens=20
+        )
+        options_raw = response_opt.choices[0].message.content.strip()
+        _openai_cache[key_opt] = options_raw
+    options = [opt.strip() for opt in options_raw.split('|') if opt.strip()]
 
-    if use_local_model and df_qa_mode is not None:
-        try:
-            # Ambil pertanyaan dan opsi jawaban berdasarkan urutan step
-            pertanyaan_cols = [col for col in df_qa_mode.columns if col.startswith('Pertanyaan_CS.')]
-            jawaban_cols = [col for col in df_qa_mode.columns if col.startswith('Jawaban_Pelanggan.')]
-            # Urutkan kolom berdasarkan index
-            def sort_by_index(col_list, prefix):
-                def extract_idx(col):
-                    try:
-                        return int(col.replace(prefix, ''))
-                    except:
-                        return 0
-                return sorted(col_list, key=lambda col: extract_idx(col))
-            pertanyaan_cols = sort_by_index(pertanyaan_cols, 'Pertanyaan_CS.')
-            jawaban_cols = sort_by_index(jawaban_cols, 'Jawaban_Pelanggan.')
-            step = len([item for item in context if str(item.get('a', '')).strip()])
-            num_steps = min(len(pertanyaan_cols), len(jawaban_cols))
-            if step >= num_steps:
-                print(f"[ERROR] Step ({step}) >= num_steps ({num_steps}). Kolom pertanyaan: {pertanyaan_cols}, kolom jawaban: {jawaban_cols}")
-                return {"question": None, "options": []}
-            # Ambil pertanyaan dan opsi jawaban dari step yang sesuai
-            try:
-                question_text = df_qa_mode[pertanyaan_cols[step]].dropna().iloc[0]
-            except Exception as e:
-                print(f"[ERROR] Gagal ambil pertanyaan dari kolom {pertanyaan_cols[step]}: {e}")
-            try:
-                options = df_qa_mode[jawaban_cols[step]].dropna().unique().tolist()
-            except Exception as e:
-                print(f"[ERROR] Gagal ambil opsi jawaban dari kolom {jawaban_cols[step]}: {e}")
-        except Exception as e:
-            print(f"[ERROR] Gagal proses pertanyaan/jawaban dari dataset: {e}")
-    if not question_text:
-        question_text = response.get("question") or response.get("model_local") or ""
-    if not options and df_qa_mode is not None:
-        try:
-            # Fallback opsi jawaban dari kolom jawaban step saat ini
-            pertanyaan_cols = [col for col in df_qa_mode.columns if col.startswith('Pertanyaan_CS.')]
-            jawaban_cols = [col for col in df_qa_mode.columns if col.startswith('Jawaban_Pelanggan.')]
-            pertanyaan_cols = sort_by_index(pertanyaan_cols, 'Pertanyaan_CS.')
-            jawaban_cols = sort_by_index(jawaban_cols, 'Jawaban_Pelanggan.')
-            step = len([item for item in context if str(item.get('a', '')).strip()])
-            # Tambahkan +1 agar pertanyaan/jawaban tidak berulang
-            next_step = step + 1 if (step + 1) < len(jawaban_cols) else step
-            if next_step < len(jawaban_cols):
-                options = df_qa_mode[jawaban_cols[next_step]].dropna().unique().tolist()
-        except Exception as e:
-            print(f"[ERROR] Gagal ambil opsi jawaban dari dataset: {e}")
-    # Jangan fallback ke opsi statis jika data tersedia
-    if (not options or len(options) == 0) and df_qa_mode is not None:
-        try:
-            pertanyaan_cols = [col for col in df_qa_mode.columns if col.startswith('Pertanyaan_CS.')]
-            jawaban_cols = [col for col in df_qa_mode.columns if col.startswith('Jawaban_Pelanggan.')]
-            pertanyaan_cols = sorted(pertanyaan_cols, key=lambda col: int(col.replace('Pertanyaan_CS.', '')))
-            jawaban_cols = sorted(jawaban_cols, key=lambda col: int(col.replace('Jawaban_Pelanggan.', '')))
-            step = len([item for item in context if str(item.get('a', '')).strip()])
-            # Tambahkan +1 agar pertanyaan/jawaban tidak berulang
-            next_step = step + 1 if (step + 1) < len(jawaban_cols) else step
-            if next_step < len(jawaban_cols):
-                options = df_qa_mode[jawaban_cols[next_step]].dropna().unique().tolist()
-        except Exception as e:
-            print(f"[ERROR] Fallback opsi jawaban dinamis gagal: {e}")
-    # Jika tetap kosong, baru fallback ke opsi statis
-    if not options or len(options) == 0:
-        options = ["Ya", "Tidak", "Mungkin", "Butuh info lebih lanjut"]
-    print(f"[DEBUG] Opsi yang dikirim ke frontend: {options}")
-    result = {
-        "model_local": response.get("model_local"),
-        "question": question_text,
+    return {
+        "question": question,
         "options": options,
-        "source": "local" if use_local_model else "openai"
+        "is_last": False,
+        "allow_manual": True
     }
-    return result
-
-def save_conversation_to_excel(customer_id, topic, question, answer, extra):
-    data = {
-        "customer_id": [customer_id],
-        "topic": [topic],
-        "question": [question],
-        "answer": [answer],
-        "extra": [extra]
-    }
-    df = pd.DataFrame(data)
-    if os.path.exists(EXCEL_PATH):
-        df_existing = pd.read_excel(EXCEL_PATH)
-        df = pd.concat([df_existing, df], ignore_index=True)
-    df.to_excel(EXCEL_PATH, index=False)
 
 def process_customer_answer(answer: str) -> dict:
     return generate_chatgpt_response(answer)
+
+def save_conversation_to_excel(*args, **kwargs):
+    pass
